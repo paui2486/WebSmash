@@ -1,0 +1,119 @@
+body {
+    margin: 0;
+    padding: 0;
+    overflow: hidden; /* 防止捲軸出現 */
+    background-color: #111;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    user-select: none; /* 防止選取文字 */
+}
+
+/* 啟動畫面 */
+#start-overlay {
+    position: fixed;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0, 0, 0, 0.9);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+    color: white;
+    text-align: center;
+}
+
+.content h1 {
+    font-size: 3rem;
+    margin-bottom: 20px;
+    background: linear-gradient(45deg, #ff9f43, #ee5253);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.content p {
+    font-size: 1.2rem;
+    line-height: 1.6;
+    color: #ccc;
+    margin-bottom: 30px;
+}
+
+#start-btn {
+    padding: 15px 40px;
+    font-size: 1.5rem;
+    background: #e74c3c;
+    color: white;
+    border: none;
+    border-radius: 50px;
+    cursor: pointer;
+    transition: transform 0.2s, background 0.2s;
+    font-weight: bold;
+    box-shadow: 0 4px 15px rgba(231, 76, 60, 0.4);
+}
+
+#start-btn:hover {
+    transform: scale(1.05);
+    background: #c0392b;
+}
+
+/* 工具列 */
+#toolbar {
+    position: fixed;
+    left: 20px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(40, 40, 40, 0.9);
+    padding: 10px;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    display: none; /* 初始隱藏 */
+    flex-direction: column;
+    gap: 12px;
+    z-index: 100;
+}
+
+.tool {
+    width: 50px;
+    height: 50px;
+    background: #444;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: 2px solid transparent;
+}
+
+.tool:hover {
+    background: #555;
+    transform: translateX(5px);
+}
+
+.tool.active {
+    background: #3498db;
+    border-color: #85c1e9;
+    box-shadow: 0 0 10px rgba(52, 152, 219, 0.5);
+}
+
+.tool.reset {
+    background: #c0392b;
+}
+
+.separator {
+    height: 2px;
+    background: rgba(255,255,255,0.1);
+    margin: 5px 0;
+}
+
+/* 左上角狀態顯示 */
+#status-bar {
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    color: white;
+    background: rgba(0,0,0,0.5);
+    padding: 5px 15px;
+    border-radius: 20px;
+    pointer-events: none;
+    display: none;
+    z-index: 100;
+}

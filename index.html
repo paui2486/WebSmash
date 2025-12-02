@@ -1,0 +1,33 @@
+<!DOCTY:wqPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebSmash - 網頁粉碎機</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div id="start-overlay">
+        <div class="content">
+            <h1>💥 WebSmash 網頁粉碎機</h1>
+            <p>1. 點擊下方按鈕<br>2. 選擇「視窗」或「整個螢幕」<br>3. 開始發洩！</p>
+            <button id="start-btn" onclick="startCapture()">🔥 鎖定畫面並開始 🔥</button>
+        </div>
+    </div>
+
+    <div id="toolbar">
+        <div class="tool active" onclick="selectTool('hammer')" title="鐵鎚">🔨</div>
+        <div class="tool" onclick="selectTool('flame')" title="火焰槍">🔥</div>
+        <div class="tool" onclick="selectTool('whip')" title="鞭子">🐍</div>
+        <div class="tool" onclick="selectTool('tofu')" title="豆腐">⬜</div>
+        <div class="separator"></div>
+        <div class="tool reset" onclick="resetDamage()" title="重置">🔄</div>
+    </div>
+
+    <div id="status-bar">當前工具: 鐵鎚</div>
+
+    <script src="sketch.js"></script>
+</body>
+</html>
