@@ -1,3 +1,11 @@
+/**
+ * WebSmash - 網頁粉碎機
+ * Core Logic Script (p5.js)
+ * * Update Logs:
+ * - Fixed: 火焰特效改用 Alpha Blending，解決透明圖層無法顯色問題。
+ * - Added: 加入 Screen Shake (畫面震動) 系統，增加打擊感。
+ */
+
 // ========== 全域變數 ==========
 let capturedImage;       // 存放螢幕截圖
 let damageLayer;         // 靜態破壞層 (存儲裂痕、燒焦、豆腐痕跡)
@@ -5,6 +13,7 @@ let activeTofus = [];    // 活躍的豆腐物件列表
 let activeWhipEffects = []; // 鞭子閃光特效列表
 let currentTool = 'hammer'; // 當前工具
 let isGameActive = false;   // 遊戲是否開始
+let shakeAmount = 0;        // 畫面震動強度
 
 // ========== p5.js 生命週期 ==========
 
@@ -25,6 +34,20 @@ function draw() {
 
     background(0);
 
+    // --- 儲存座標狀態 (開始繪製遊戲世界) ---
+    push(); 
+
+    // ⚡ 處理畫面震動特效
+    if (shakeAmount > 0) {
+        let shakeX = random(-shakeAmount, shakeAmount);
+        let shakeY = random(-shakeAmount, shakeAmount);
+        translate(shakeX, shakeY);
+        
+        // 震動衰減 (Damping)
+        shakeAmount *= 0.9; 
+        if (shakeAmount < 0.5) shakeAmount = 0;
+    }
+
     // 1. 繪製底圖 (截圖)
     if (capturedImage) {
         image(capturedImage, 0, 0, width, height);
@@ -35,7 +58,10 @@ function draw() {
 
     // 3. 處理持續性工具 (火焰槍需要按住)
     if (mouseIsPressed && isGameActive) {
-        if (currentTool === 'flame') useFlamethrower(mouseX, mouseY);
+        // 只有滑鼠不在工具列區域時才觸發 (簡單防呆: x > 80)
+        if (mouseX > 80 && currentTool === 'flame') {
+            useFlamethrower(mouseX, mouseY);
+        }
     }
 
     // 4. 更新並繪製豆腐 (包含在破壞層留痕跡)
@@ -44,13 +70,17 @@ function draw() {
     // 5. 更新並繪製鞭子閃光
     updateAndDrawWhipEffects();
 
-    // 6. 繪製自定義游標
+    // --- 還原座標狀態 (結束繪製遊戲世界) ---
+    pop(); 
+
+    // 6. 繪製自定義游標 (不受震動影響，保持穩定)
     drawCustomCursor();
 }
 
 function windowResized() {
     resizeCanvas(windowWidth, windowHeight);
-    // 注意：改變視窗大小會讓舊的 damageLayer 消失或變形，這邊暫不處理複雜的 resize 保留邏輯
+    // 注意：改變視窗大小會讓舊的 damageLayer 消失，
+    // 實務上這裡通常會需要重新建立並繪製，或是暫時清空。
     damageLayer = createGraphics(windowWidth, windowHeight);
 }
 
@@ -58,8 +88,9 @@ function windowResized() {
 
 async function startCapture() {
     try {
+        // 請求螢幕分享權限
         const stream = await navigator.mediaDevices.getDisplayMedia({
-            video: { cursor: "never" },
+            video: { cursor: "never" }, // 不錄製系統游標，改用我們畫的
             audio: false
         });
 
@@ -78,14 +109,14 @@ async function startCapture() {
             let x = (windowWidth - w) / 2;
             let y = (windowHeight - h) / 2;
 
-            // 將 video 畫到 p5 image 上
+            // 將 video 畫面畫到 p5 image 上
             capturedImage.drawingContext.drawImage(video, x, y, w, h);
             
-            // 停止串流
+            // 停止串流 (釋放資源，定格畫面)
             stream.getTracks().forEach(track => track.stop());
             video.remove();
 
-            // 啟動遊戲介面
+            // 切換 UI 狀態
             document.getElementById('start-overlay').style.display = 'none';
             document.getElementById('toolbar').style.display = 'flex';
             document.getElementById('status-bar').style.display = 'block';
@@ -96,29 +127,27 @@ async function startCapture() {
 
     } catch (err) {
         console.error(err);
-        alert("需要螢幕權限才能開始遊戲！");
+        alert("需要螢幕權限才能開始遊戲！請重新整理並允許權限。");
     }
 }
 
 function selectTool(tool) {
     currentTool = tool;
     
-    // 更新 UI
-    document.querySelectorAll('.tool').forEach(el => el.classList.remove('active'));
-    // 這裡簡單透過去找對應 title 或 onclick 屬性來 hightlight，或直接點擊觸發
-    // 為了簡單，我們假設使用者點擊時已經觸發了 this class change，
-    // 但因為 selectTool 是全局呼叫，我們用最簡單的方式更新文字
+    // 更新狀態列文字
     const toolNames = {
         'hammer': '鐵鎚 🔨', 'flame': '火焰槍 🔥', 
         'whip': '鞭子 🐍', 'tofu': '豆腐 ⬜'
     };
-    document.getElementById('status-bar').innerText = `當前工具: ${toolNames[tool]}`;
+    let statusBar = document.getElementById('status-bar');
+    if(statusBar) statusBar.innerText = `當前工具: ${toolNames[tool]}`;
     
-    // 重新綁定 active class (這段需配合 HTML onclick 傳入 event，這裡簡化處理)
-    // 實際運作主要靠 currentTool 變數
-    let tools = document.getElementsByClassName('tool');
-    for(let t of tools) {
-        if(t.getAttribute('onclick').includes(tool)) t.classList.add('active');
+    // 更新按鈕樣式 (依賴 HTML onclick 事件觸發這裡)
+    document.querySelectorAll('.tool').forEach(el => el.classList.remove('active'));
+    
+    // 透過 event.currentTarget 抓取被點擊的按鈕元素
+    if(event && event.currentTarget) {
+        event.currentTarget.classList.add('active');
     }
 }
 
@@ -126,13 +155,14 @@ function resetDamage() {
     damageLayer.clear();
     activeTofus = [];
     activeWhipEffects = [];
+    shakeAmount = 0;
 }
 
 // ========== 輸入事件處理 ==========
 
 function mousePressed() {
     if (!isGameActive) return;
-    // 避免點擊工具列觸發效果 (簡單判定 X 軸)
+    // 避免點擊工具列觸發效果 (防呆區域)
     if (mouseX < 80) return;
 
     if (currentTool === 'hammer') useHammer(mouseX, mouseY);
@@ -142,8 +172,10 @@ function mousePressed() {
 
 // ========== 工具實作細節 (Procedural Drawing) ==========
 
-// 1. 鐵鎚
+// 1. 鐵鎚 🔨
 function useHammer(x, y) {
+    shakeAmount = 15; // 強烈震動
+
     damageLayer.push();
     damageLayer.translate(x, y);
     
@@ -162,7 +194,7 @@ function useHammer(x, y) {
         let angle = random(TWO_PI);
         let len = random(30, 100);
         
-        // 畫折線
+        // 畫折線模擬隨機裂痕
         damageLayer.beginShape();
         damageLayer.vertex(0, 0);
         damageLayer.vertex(cos(angle) * len * 0.5 + random(-5,5), sin(angle) * len * 0.5 + random(-5,5));
@@ -172,32 +204,33 @@ function useHammer(x, y) {
     damageLayer.pop();
 }
 
-// 2. 火焰槍
+// 2. 火焰槍 🔥
 function useFlamethrower(x, y) {
+    // 註：持續性震動通常會太暈，這裡不加震動，或加很小的震動
+    // shakeAmount = 2; 
+
     damageLayer.push();
-    
-    // 修正點：移除 MULTIPLY，改回預設的 BLEND 模式
-    // 在透明圖層上，直接疊加半透明顏色就能達到「越噴越黑」的效果
+    // ✅ 修正點：移除 MULTIPLY，使用預設 BLEND 模式搭配透明度疊加
     damageLayer.blendMode(BLEND); 
-    
     damageLayer.noStroke();
     
-    // 噴灑粒子 (增加粒子數量或透明度可以增強效果)
+    // 噴灑粒子
     for(let i=0; i<5; i++) {
-        let r = random(15, 45);   //稍微加大一點範圍
-        let ox = random(-25, 25); //擴散範圍
+        let r = random(15, 45);   
+        let ox = random(-25, 25); 
         let oy = random(-25, 25);
         
-        // 顏色：焦黑帶紅 (R, G, B, Alpha)
-        // Alpha 設為 15~30 左右，疊加起來比較自然
+        // 顏色：焦黑帶紅，透明度 (Alpha) 設為 20 讓它慢慢疊加變深
         damageLayer.fill(30, 20, 10, 20); 
         damageLayer.circle(x + ox, y + oy, r);
     }
     damageLayer.pop();
 }
 
-// 3. 鞭子
+// 3. 鞭子 🐍
 function useWhip(x, y) {
+    shakeAmount = 5; // 輕微震動
+
     // 3.1 增加動態閃光 (Visual Flash)
     activeWhipEffects.push({
         x: x, y: y, life: 10, maxLife: 10, 
@@ -210,7 +243,7 @@ function useWhip(x, y) {
     damageLayer.strokeWeight(3);
     damageLayer.noFill();
     
-    // 畫一條微彎的線
+    // 畫一條微彎的線 (貝茲曲線)
     let len = 120;
     let angle = random(TWO_PI);
     let x2 = x + cos(angle) * len;
@@ -225,7 +258,7 @@ function useWhip(x, y) {
     damageLayer.pop();
 }
 
-// 4. 豆腐
+// 4. 豆腐 ⬜
 class Tofu {
     constructor(x, y) {
         this.x = x;
@@ -236,15 +269,15 @@ class Tofu {
     update() {
         this.y += this.vy;
         
-        // 在背後留下痕跡 (畫在 damageLayer 上)
+        // 在背後留下痕跡 (畫在 damageLayer 上，所以是永久的)
         damageLayer.noStroke();
-        damageLayer.fill(255, 255, 255, 3); // 極淡
+        damageLayer.fill(255, 255, 255, 3); // 極淡的白色黏液
         damageLayer.rectMode(CENTER);
         // 痕跡寬度略小於豆腐
         damageLayer.rect(this.x, this.y - this.size/2, this.size * 0.8, this.vy + 5);
     }
     display() {
-        // 畫豆腐本體 (畫在主 Canvas 上)
+        // 畫豆腐本體 (畫在主 Canvas 上，動態更新)
         push();
         translate(this.x, this.y);
         rectMode(CENTER);
@@ -261,6 +294,7 @@ class Tofu {
 }
 
 function useTofu(x, y) {
+    // 豆腐不需要震動，走軟爛風格
     activeTofus.push(new Tofu(x, y));
 }
 
@@ -270,7 +304,7 @@ function updateAndDrawTofus() {
         t.update();
         t.display();
         
-        // 超出邊界移除
+        // 超出邊界一定距離後移除，節省記憶體
         if (t.y > height + 100) {
             activeTofus.splice(i, 1);
         }
@@ -286,6 +320,7 @@ function updateAndDrawWhipEffects() {
         push();
         translate(e.x, e.y);
         rotate(e.angle);
+        // 隨著壽命減少，透明度與粗細也減少
         stroke(255, 255, 200, progress * 255);
         strokeWeight(progress * 8);
         line(-60, 0, 60, 0); // 閃光線條
@@ -306,18 +341,20 @@ function drawCustomCursor() {
     let x = mouseX;
     let y = mouseY;
     
+    // 根據不同工具繪製不同游標
     if (currentTool === 'hammer') {
         // 圓圈準星
         ellipse(x, y, 20, 20);
         line(x-15, y, x+15, y);
         line(x, y-15, x, y+15);
     } else if (currentTool === 'flame') {
-        stroke(255, 100, 0);
+        stroke(255, 100, 0); // 橘色
         ellipse(x, y, 30, 30);
+        strokeWeight(4);
         point(x, y);
     } else if (currentTool === 'tofu') {
         rectMode(CENTER);
-        rect(x, y, 20, 20);
+        rect(x, y, 24, 24);
     } else {
         // 鞭子：X 型
         line(x-10, y-10, x+10, y+10);
