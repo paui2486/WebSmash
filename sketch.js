@@ -174,7 +174,7 @@ function mousePressed() {
 
 // 1. 鐵鎚 🔨
 function useHammer(x, y) {
-    shakeAmount = 15; // 強烈震動
+    shakeAmount = 10; // 強烈震動 (已調降)
 
     damageLayer.push();
     damageLayer.translate(x, y);
@@ -214,11 +214,11 @@ function useFlamethrower(x, y) {
     damageLayer.blendMode(BLEND); 
     damageLayer.noStroke();
     
-    // 噴灑粒子
-    for(let i=0; i<5; i++) {
-        let r = random(15, 45);   
-        let ox = random(-25, 25); 
-        let oy = random(-25, 25);
+    // 噴灑粒子 (火力加強：增加粒子數量)
+    for(let i=0; i<12; i++) {
+        let r = random(15, 55);
+        let ox = random(-30, 30);
+        let oy = random(-30, 30);
         
         // 顏色：焦黑帶紅，透明度 (Alpha) 設為 20 讓它慢慢疊加變深
         damageLayer.fill(30, 20, 10, 20); 
@@ -229,7 +229,7 @@ function useFlamethrower(x, y) {
 
 // 3. 鞭子 🐍
 function useWhip(x, y) {
-    shakeAmount = 5; // 輕微震動
+    shakeAmount = 4; // 輕微震動 (已調降)
 
     // 3.1 增加動態閃光 (Visual Flash)
     activeWhipEffects.push({
@@ -294,7 +294,7 @@ class Tofu {
 }
 
 function useTofu(x, y) {
-    // 豆腐不需要震動，走軟爛風格
+    shakeAmount = 1; // 豆腐給予最小的震動效果
     activeTofus.push(new Tofu(x, y));
 }
 
