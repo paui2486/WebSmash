@@ -175,15 +175,22 @@ function useHammer(x, y) {
 // 2. 火焰槍
 function useFlamethrower(x, y) {
     damageLayer.push();
-    damageLayer.blendMode(MULTIPLY); // 越疊越黑
+    
+    // 修正點：移除 MULTIPLY，改回預設的 BLEND 模式
+    // 在透明圖層上，直接疊加半透明顏色就能達到「越噴越黑」的效果
+    damageLayer.blendMode(BLEND); 
+    
     damageLayer.noStroke();
     
-    // 噴灑粒子
+    // 噴灑粒子 (增加粒子數量或透明度可以增強效果)
     for(let i=0; i<5; i++) {
-        let r = random(10, 40);
-        let ox = random(-20, 20);
-        let oy = random(-20, 20);
-        damageLayer.fill(50, 20, 10, 20); // 焦黑色
+        let r = random(15, 45);   //稍微加大一點範圍
+        let ox = random(-25, 25); //擴散範圍
+        let oy = random(-25, 25);
+        
+        // 顏色：焦黑帶紅 (R, G, B, Alpha)
+        // Alpha 設為 15~30 左右，疊加起來比較自然
+        damageLayer.fill(30, 20, 10, 20); 
         damageLayer.circle(x + ox, y + oy, r);
     }
     damageLayer.pop();
