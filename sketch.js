@@ -56,11 +56,15 @@ function draw() {
     // 2. 繪製靜態破壞層 (裂痕、燒焦等)
     image(damageLayer, 0, 0);
 
-    // 3. 處理持續性工具 (火焰槍需要按住)
+    // 3. 處理持續性工具 (火焰槍、機關槍需要按住)
     if (mouseIsPressed && isGameActive) {
         // 只有滑鼠不在工具列區域時才觸發 (簡單防呆: x > 80)
-        if (mouseX > 80 && currentTool === 'flame') {
-            useFlamethrower(mouseX, mouseY);
+        if (mouseX > 80) {
+            if (currentTool === 'flame') {
+                useFlamethrower(mouseX, mouseY);
+            } else if (currentTool === 'machinegun') {
+                useMachineGun(mouseX, mouseY);
+            }
         }
     }
 
@@ -137,7 +141,8 @@ function selectTool(tool) {
     // 更新狀態列文字
     const toolNames = {
         'hammer': '鐵鎚 🔨', 'flame': '火焰槍 🔥', 
-        'whip': '鞭子 🐍', 'tofu': '豆腐 ⬜'
+        'whip': '鞭子 🐍', 'tofu': '豆腐 ⬜',
+        'machinegun': '機關槍 🔫'
     };
     let statusBar = document.getElementById('status-bar');
     if(statusBar) statusBar.innerText = `當前工具: ${toolNames[tool]}`;
@@ -298,6 +303,62 @@ function useTofu(x, y) {
     activeTofus.push(new Tofu(x, y));
 }
 
+// 5. 機關槍 🔫
+function useMachineGun(x, y) {
+    // 限制射速：每 4 幀發射一次
+    if (frameCount % 4 !== 0) return;
+
+    shakeAmount = 3; // 中等震動
+
+    damageLayer.push();
+    damageLayer.translate(x, y);
+
+    // 彈孔 (隨機散佈)
+    let spread = 15;
+    let dx = random(-spread, spread);
+    let dy = random(-spread, spread);
+
+    damageLayer.translate(dx, dy);
+    damageLayer.noStroke();
+
+    // 彈孔中心
+    damageLayer.fill(10, 10, 10, 200);
+    damageLayer.circle(0, 0, random(6, 10));
+
+    // 彈孔燒焦邊緣
+    damageLayer.noFill();
+    damageLayer.stroke(50, 50, 50, 150);
+    damageLayer.strokeWeight(1);
+    damageLayer.circle(0, 0, random(10, 14));
+
+    // 小裂痕
+    damageLayer.stroke(200, 200, 200, 150);
+    damageLayer.strokeWeight(1);
+    for(let i=0; i<3; i++) {
+        let a = random(TWO_PI);
+        let l = random(5, 12);
+        damageLayer.line(0, 0, cos(a)*l, sin(a)*l);
+    }
+
+    damageLayer.pop();
+
+    // 槍口閃光 (Muzzle Flash) - 畫在主畫布上，只出現一瞬間
+    push();
+    translate(x + dx, y + dy); // 跟隨彈孔位置
+    noStroke();
+    fill(255, 200, 50, 200); // 亮黃色
+
+    // 畫一個不規則的星形或爆炸形
+    beginShape();
+    for (let i = 0; i < 8; i++) {
+        let angle = map(i, 0, 8, 0, TWO_PI);
+        let r = (i % 2 === 0) ? random(15, 25) : random(5, 10);
+        vertex(cos(angle) * r, sin(angle) * r);
+    }
+    endShape(CLOSE);
+    pop();
+}
+
 function updateAndDrawTofus() {
     for (let i = activeTofus.length - 1; i >= 0; i--) {
         let t = activeTofus[i];
@@ -355,6 +416,17 @@ function drawCustomCursor() {
     } else if (currentTool === 'tofu') {
         rectMode(CENTER);
         rect(x, y, 24, 24);
+    } else if (currentTool === 'machinegun') {
+        // 機關槍：準心
+        stroke(0, 255, 0); // 綠色準心
+        noFill();
+        ellipse(x, y, 25, 25);
+        line(x - 20, y, x - 5, y);
+        line(x + 5, y, x + 20, y);
+        line(x, y - 20, x, y - 5);
+        line(x, y + 5, x, y + 20);
+        strokeWeight(4);
+        point(x, y);
     } else {
         // 鞭子：X 型
         line(x-10, y-10, x+10, y+10);
