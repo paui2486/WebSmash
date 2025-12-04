@@ -77,6 +77,14 @@ function draw() {
     // --- 還原座標狀態 (結束繪製遊戲世界) ---
     pop(); 
 
+    // 新增：繪製遊戲邊框 (UI 指示)
+    push();
+    noFill();
+    stroke(255, 0, 0); // 紅色邊框
+    strokeWeight(5);   // 細小的寬度
+    rect(0, 0, width, height);
+    pop();
+
     // 6. 繪製自定義游標 (不受震動影響，保持穩定)
     drawCustomCursor();
 }
